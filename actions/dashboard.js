@@ -1,16 +1,14 @@
-"use server"
+"use server";
 
-import { industries } from "@/data/industries";
 import { db } from "@/lib/prisma";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import IndustryInsightPage from "./dashboard/page";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export const generateAIInsights = async (industry) => {
-    const prompt = `
+  const prompt = `
           Analyze the current state of the ${industry} industry and provide insights in ONLY the following JSON format without any additional notes or explanations:
           {
             "salaryRanges": [
@@ -29,40 +27,41 @@ export const generateAIInsights = async (industry) => {
           Growth rate should be a percentage.
           Include at least 5 skills and trends.
         `;
-    
-    const result = await model.generateContent(prompt)
-    const response = result.process;
-    const text = response.text();
-    const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
 
-    return JSON.parse(cleanedText)
-}
+  const result = await model.generateContent(prompt);
+  const response = result.response;
+  const text = response.text();
+  const cleanedText = text.replace(/```(?:json)?\n?/g, "").trim();
+
+  return JSON.parse(cleanedText);
+};
 
 export async function getIndustryInsights() {
-    const {userId} = await auth();
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
 
-    if(!userId) throw new Error("Unauthorized");
+  const user = await db.user.findUnique({
+    where: { clerkUserId: userId },
+    include: {
+      industryInsight: true,
+    },
+  });
 
-    const user = await db.user.findUnique({
-        where: {clerkUserId: userId},
-        include: {
-            IndustryInsight: true,
-        },
+  if (!user) throw new Error("User not found");
+
+  if (!user.industryInsight) {
+    const insights = await generateAIInsights(user.industry);
+
+    const industryInsight = await db.industryInsight.create({
+      data: {
+        industry: user.industry,
+        ...insights,
+        nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
     });
 
-    if(!user) throw new Error("User not found");
+    return industryInsight;
+  }
 
-    if(!user.IndustryInsight) {
-        const insights = await generateAIInsights(user.industry);
-
-        const industryInsight = await db.industryInsight.create({
-            data: {
-                industry: user.industry,
-                ...insights,
-                nextUpdate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            },
-        })
-        return industryInsight;
-    }
-    return user.industryInsight;
+  return user.industryInsight;
 }
