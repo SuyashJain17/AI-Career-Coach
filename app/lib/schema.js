@@ -1,3 +1,4 @@
+import { ContactIcon } from "lucide-react";
 import { z } from "zod";
 
 export const onboardingSchema = z.object({
@@ -26,3 +27,38 @@ export const onboardingSchema = z.object({
       : undefined
   ),
 });
+
+export const contactSchema = z.object({
+  email:  z.string().email("Invalid email address"),
+  mobile: z.string().optional(),
+  linkedin: z.string().optional(),
+  twitter: z.string().optional(),
+})
+
+export const entrySchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  organization: z.string().min(1, "Organization is required"),
+  startDate: z.string().min(1, "start date is required"),
+  endDate: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
+  current: z.boolean().default(false),
+}).refine(
+  (data) => {
+    if(!data.current && !data.endDate) {
+      return false;
+    }
+    return true;
+  }, {
+    message: "End date is required useless this is your current position",
+    path: ["endDate"],  
+  }
+)
+
+export const resumeSchema = z.object({
+  ContactInfo: contactSchema,
+  summary: z.string().min(1, "Proffesional summary is required"),
+  skills: z.string().min(1, "skills are required"),
+  expierence: z.array(entrySchema),
+  education: z.array(entrySchema),
+  projects: z.array(entrySchema),
+})
