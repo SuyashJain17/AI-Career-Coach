@@ -76,6 +76,7 @@ export function EntryForm({ type, entries, onChange }) {
     error: improveError,
   } = useFetch(improveWithAI);
 
+  // Add this effect to handle the improvement result
   useEffect(() => {
     if (improvedContent && !isImproving) {
       setValue("description", improvedContent);
@@ -86,6 +87,7 @@ export function EntryForm({ type, entries, onChange }) {
     }
   }, [improvedContent, improveError, isImproving, setValue]);
 
+  // Replace handleImproveDescription with this
   const handleImproveDescription = async () => {
     const description = watch("description");
     if (!description) {
@@ -95,7 +97,7 @@ export function EntryForm({ type, entries, onChange }) {
 
     await improveWithAIFn({
       current: description,
-      type: type.toLowerCase(), 
+      type: type.toLowerCase(), // 'experience', 'education', or 'project'
     });
   };
 

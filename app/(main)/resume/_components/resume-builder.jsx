@@ -23,7 +23,7 @@ import useFetch from "@/hooks/use-fetch";
 import { useUser } from "@clerk/nextjs";
 import { entriesToMarkdown } from "@/app/lib/helper";
 import { resumeSchema } from "@/app/lib/schema";
-
+import html2pdf from "html2pdf.js/dist/html2pdf.min.js";
 
 export default function ResumeBuilder({ initialContent }) {
   const [activeTab, setActiveTab] = useState("edit");
@@ -56,12 +56,14 @@ export default function ResumeBuilder({ initialContent }) {
     error: saveError,
   } = useFetch(saveResume);
 
+  // Watch form fields for preview updates
   const formValues = watch();
 
   useEffect(() => {
     if (initialContent) setActiveTab("preview");
   }, [initialContent]);
 
+  // Update preview content when form values change
   useEffect(() => {
     if (activeTab === "edit") {
       const newContent = getCombinedContent();
@@ -69,6 +71,7 @@ export default function ResumeBuilder({ initialContent }) {
     }
   }, [formValues, activeTab]);
 
+  // Handle save result
   useEffect(() => {
     if (saveResult && !isSaving) {
       toast.success("Resume saved successfully!");
@@ -112,7 +115,6 @@ export default function ResumeBuilder({ initialContent }) {
   const generatePDF = async () => {
     setIsGenerating(true);
     try {
-      const html2pdf = (await import("html2pdf.js")).default;
       const element = document.getElementById("resume-pdf");
       const opt = {
         margin: [15, 15],
@@ -121,7 +123,7 @@ export default function ResumeBuilder({ initialContent }) {
         html2canvas: { scale: 2 },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       };
-  
+
       await html2pdf().set(opt).from(element).save();
     } catch (error) {
       console.error("PDF generation error:", error);
@@ -129,13 +131,12 @@ export default function ResumeBuilder({ initialContent }) {
       setIsGenerating(false);
     }
   };
-  
 
   const onSubmit = async (data) => {
     try {
       const formattedContent = previewContent
-        .replace(/\n/g, "\n") 
-        .replace(/\n\s*\n/g, "\n\n") 
+        .replace(/\n/g, "\n") // Normalize newlines
+        .replace(/\n\s*\n/g, "\n\n") // Normalize multiple newlines to double newlines
         .trim();
 
       console.log(previewContent, formattedContent);
@@ -193,6 +194,7 @@ export default function ResumeBuilder({ initialContent }) {
 
         <TabsContent value="edit">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+            {/* Contact Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Contact Information</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-muted/50">
@@ -254,6 +256,7 @@ export default function ResumeBuilder({ initialContent }) {
               </div>
             </div>
 
+            {/* Summary */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Professional Summary</h3>
               <Controller
@@ -273,6 +276,7 @@ export default function ResumeBuilder({ initialContent }) {
               )}
             </div>
 
+            {/* Skills */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Skills</h3>
               <Controller
@@ -292,6 +296,7 @@ export default function ResumeBuilder({ initialContent }) {
               )}
             </div>
 
+            {/* Experience */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Work Experience</h3>
               <Controller
@@ -312,6 +317,7 @@ export default function ResumeBuilder({ initialContent }) {
               )}
             </div>
 
+            {/* Education */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Education</h3>
               <Controller
@@ -332,6 +338,7 @@ export default function ResumeBuilder({ initialContent }) {
               )}
             </div>
 
+            {/* Projects */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Projects</h3>
               <Controller

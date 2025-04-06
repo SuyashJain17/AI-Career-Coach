@@ -5,9 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ 
-  model: "gemini-1.5-flash" 
-});
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function generateQuiz() {
   const { userId } = await auth();
@@ -77,8 +75,10 @@ export async function saveQuizResult(questions, answers, score) {
     explanation: q.explanation,
   }));
 
+  // Get wrong answers
   const wrongAnswers = questionResults.filter((q) => !q.isCorrect);
 
+  // Only generate improvement tips if there are wrong answers
   let improvementTip = null;
   if (wrongAnswers.length > 0) {
     const wrongQuestionsText = wrongAnswers
@@ -106,6 +106,7 @@ export async function saveQuizResult(questions, answers, score) {
       console.log(improvementTip);
     } catch (error) {
       console.error("Error generating improvement tip:", error);
+      // Continue without improvement tip if generation fails
     }
   }
 
@@ -128,18 +129,17 @@ export async function saveQuizResult(questions, answers, score) {
 }
 
 export async function getAssessments() {
-  const {userId} = await auth();
-  if(!userId) throw new Error("Unauthorize");
+  const { userId } = await auth();
+  if (!userId) throw new Error("Unauthorized");
 
   const user = await db.user.findUnique({
-    where: {
-      clerkUserId: userId,
-    },
+    where: { clerkUserId: userId },
   });
-  if(!user) throw new Error("User not found");
+
+  if (!user) throw new Error("User not found");
 
   try {
-    const assessment = await db.assessment.findMany ({
+    const assessments = await db.assessment.findMany({
       where: {
         userId: user.id,
       },
@@ -147,9 +147,10 @@ export async function getAssessments() {
         createdAt: "asc",
       },
     });
-    return assessment;
-  } catch(error) {
-    console.error("Error fetching assessments: ", error);
-    throw new Error("failed to fetch assessments");
+
+    return assessments;
+  } catch (error) {
+    console.error("Error fetching assessments:", error);
+    throw new Error("Failed to fetch assessments");
   }
 }

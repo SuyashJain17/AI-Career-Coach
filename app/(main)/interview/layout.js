@@ -1,5 +1,5 @@
-import { BarLoader } from "react-spinners";
 import { Suspense } from "react";
+import { BarLoader } from "react-spinners";
 
 export default function Layout({ children }) {
   return (
